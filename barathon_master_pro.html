@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="fr" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Barathon Master - Application PWA</title>
+    
+    <!-- PWA / Mobile Web App Meta -->
+    <meta name="theme-color" content="#121826">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Barathon">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        pub: {
+                            dark: '#0d1117',
+                            card: '#161b22',
+                            border: '#30363d',
+                            beer: '#f59e0b',
+                            amber: '#d97706',
+                            foam: '#fef3c7',
+                            accent: '#10b981',
+                            danger: '#ef4444'
+                        }
+                    },
+                    boxShadow: {
+                        'neon': '0 0 15px rgba(245, 158, 11, 0.4)',
+                        'neon-green': '0 0 15px rgba(16, 185, 129, 0.4)',
+                        'neon-red': '0 0 15px rgba(239, 68, 68, 0.4)'
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome & Canvas Confetti -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        /* Modern scrollbar and tap optimizations */
+        body {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #0d1117;
+            color: #f3f4f6;
+        }
+
+        .pulse-beer {
+            animation: pulse-glow 2s infinite;
+        }
+        
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.4); }
+            50% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.8); }
+        }
+
+        /* Clignotement rouge sous les 30 secondes */
+        @keyframes pulse-red-alert {
+            0%, 100% { background-color: rgba(239, 68, 68, 0.25); border-color: rgba(239, 68, 68, 0.9); box-shadow: 0 0 20px rgba(239, 68, 68, 0.6); }
+            50% { background-color: rgba(239, 68, 68, 0.05); border-color: rgba(239, 68, 68, 0.3); box-shadow: none; }
+        }
+
+        .timer-urgent-alert {
+            animation: pulse-red-alert 1s infinite !important;
+        }
+
+        /* Glassmorphism elements */
+        .glass-panel {
+            background: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        /* Restauration du style Mode Clair initial */
+        html:not(.dark) body {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+
+        html:not(.dark) .glass-panel,
+        html:not(.dark) #tab-dashboard .glass-panel,
+        html:not(.dark) #tab-dashboard .bg-pub-card,
+        html:not(.dark) .bg-pub-card {
+            background-color: #cbd5e1 !important;
+            border-color: #94a3b8 !important;
+            box-shadow: 0 4px 8px -2px rgba(15, 23, 42, 0.15) !important;
+        }
+
+        /* Champs de saisie et sélecteurs en mode clair */
+        html:not(.dark) input,
+        html:not(.dark) select {
+            background-color: #475569 !important;
+            color: #ffffff !important;
+            border-color: #334155 !important;
+        }
+
+        /* Conserver les couleurs d'origine du bloc Alcoolémie en mode clair */
+        html:not(.dark) #card-alcohol-level {
+            background-color: rgba(22, 27, 34, 0.85) !important;
+            border-color: rgba(255, 255, 255, 0.08) !important;
+        }
+
+        html:not(.dark) #card-alcohol-level.border-emerald-500\/40 {
+            background-color: rgba(16, 185, 129, 0.1) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+        }
+
+        html:not(.dark) #card-alcohol-level.border-orange-500\/50 {
+            background-color: rgba(249, 115, 22, 0.15) !important;
+            border-color: rgba(249, 115, 22, 0.5) !important;
+        }
+
+        html:not(.dark) #card-alcohol-level.border-red-500\/60 {
+            background-color: rgba(239, 68, 68, 0.2) !important;
+            border-color: rgba(239, 68, 68, 0.6) !important;
+        }
+
+        html:not(.dark) #counter-alcohol-g {
+            color: #ffffff !important;
+        }
+
+        html:not(.dark) #counter-alcohol-g.text-emerald-400 {
+            color: #34d399 !important;
+        }
+
+        html:not(.dark) #counter-alcohol-g.text-orange-400 {
+            color: #fb923c !important;
+        }
+
+        html:not(.dark) #counter-alcohol-g.text-red-400 {
+            color: #f87171 !important;
+        }
+
+        html:not(.dark) #label-alcohol-title.text-emerald-400 {
+            color: #34d399 !important;
+        }
+
+        html:not(.dark) #label-alcohol-title.text-orange-400 {
+            color: #fb923c !important;
+        }
+
+        html:not(.dark) #label-alcohol-title.text-red-400 {
+            color: #f87171 !important;
+        }
+
+        /* Mode Clair : Alerte rouge & Clignotement sous 1 min et 5 mins */
+        html:not(.dark) #chrono-container {
+            border-color: #f59e0b !important;
+        }
+
+        html:not(.dark) #chrono-container.timer-is-red {
+            background-color: rgba(239, 68, 68, 0.25) !important;
+            border-color: #ef4444 !important;
+        }
+
+        html:not(.dark) #chrono-container.timer-urgent-alert {
+            animation: pulse-red-alert-light 1s infinite !important;
+        }
+
+        html:not(.dark) .text-amber-400,
+        html:not(.dark) .text-amber-300 {
+            color: #f59e0b !important;
+        }
+
+        html:not(.dark) #timer-display,
+        html:not(.dark) #timer-total-display {
+            color: #f59e0b !important;
+        }
+
+        html:not(.dark) #timer-display.text-red-500 {
+            color: #ef4444 !important;
+        }
+
+        html:not(.dark) #timer-total-display.text-red-400 {
+            color: #f87171 !important;
+        }
+
+        @keyframes pulse-red-alert-light {
+            0%, 100% { 
+                background-color: rgba(239, 68, 68, 0.4) !important; 
+                border-color: #dc2626 !important; 
+                box-shadow: 0 0 20px rgba(239, 68, 68, 0.8) !important; 
+            }
+            50% { 
+                background-color: rgba(239, 68, 68, 0.1) !important; 
+                border-color: rgba(239, 68, 68, 0.4) !important; 
+                box-shadow: none !important; 
+            }
+        }
+
+        html:not(.dark) nav {
+            background-color: #cbd5e1 !important;
+            border-color: #94a3b8 !important;
+        }
+
+        html:not(.dark) .text-white {
+            color: #0f172a !important;
+        }
+
+        html:not(.dark) .text-gray-300, 
+        html:not(.dark) .text-gray-400 {
+            color: #1e293b !important;
+        }
+
+        html:not(.dark) .bg-pub-dark {
+            background-color: #cbd5e1 !important;
+            border-color: #94a3b8 !important;
+        }
+
+        html:not(.dark) .border-pub-border {
+            border-color: #94a3b8 !important;
+        }
+
+        /* Custom scrollbar for mobile lists */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col bg-pub-dark text-gray-100 overflow-x-hidden select-none transition-colors duration-300">
+
+    <!-- Main Scrollable Content Container -->
+    <main class="flex-1 overflow-y-auto pb-24 p-3 space-y-4 max-w-md mx-auto w-full">
+
+        <!-- Tab 1: Chrono & Live Dashboard -->
+        <section id="tab-dashboard" class="tab-content space-y-3">
+            
+            <!-- Top Header Box (Title & Format & Theme Toggle) -->
+            <div class="glass-panel p-3 rounded-xl border border-pub-border flex justify-between items-center bg-pub-card/90">
+                <div class="flex items-center gap-2">
+                    <div>
+                        <h2 id="display-barathon-name" class="text-xl font-black text-amber-400 tracking-wide">Barathon</h2>
+                        <span class="text-xs text-gray-400 font-semibold bg-pub-border/60 px-2 py-0.5 rounded text-[11px]">Format été</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="toggleTheme()" id="btn-theme-toggle-chrono" title="Changer de thème" class="bg-pub-card hover:bg-pub-border text-amber-400 border border-pub-border px-3 py-2 rounded-xl active:scale-95 transition text-xs flex items-center justify-center">
+                        <i id="theme-icon-chrono" class="fa-solid fa-sun"></i>
+                    </button>
+                    <button onclick="changerOnglet('safety')" class="bg-red-600 text-white font-extrabold px-3 py-2 rounded-xl shadow-neon-red active:scale-95 transition text-xs flex items-center gap-1">
+                        <i class="fa-solid fa-phone"></i> Urgence
+                    </button>
+                </div>
+            </div>
+
+            <!-- Restructured Info Grid: 2 Columns Top + Full Width Chrono Row Below -->
+            <div class="space-y-2">
+                <!-- Top Row: Bar Actuel & Étape -->
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <!-- Left: Current Bar & Address -->
+                    <div class="glass-panel p-3 rounded-xl border border-pub-border flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-amber-400 block mb-0.5">Bar Actuel</span>
+                            <div id="current-bar-name" class="font-extrabold text-sm text-white truncate">Bar 1</div>
+                        </div>
+                        <div class="mt-2 pt-1.5 border-t border-pub-border/50">
+                            <span class="text-[9px] uppercase text-gray-400 block">Adresse</span>
+                            <div id="current-bar-address" class="text-xs text-gray-300 truncate">Rue de la soif</div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Step & Next Bar -->
+                    <div class="glass-panel p-3 rounded-xl border border-pub-border flex flex-col justify-between">
+                        <div>
+                            <span class="text-[10px] uppercase font-bold text-amber-400 block mb-0.5">Étape</span>
+                            <div id="current-step-badge" class="font-extrabold text-sm text-amber-300">1 / 3</div>
+                        </div>
+                        <div class="mt-2 pt-1.5 border-t border-pub-border/50">
+                            <span class="text-[9px] uppercase text-gray-400 block">Prochain Bar</span>
+                            <div id="next-bar-name" class="text-xs text-emerald-400 font-bold truncate">Bar 2</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Chrono Block taking FULL WIDTH -->
+                <div id="chrono-container" class="glass-panel p-4 rounded-xl border-2 border-amber-500 bg-amber-500/5 flex flex-col items-center justify-center text-center transition-all duration-300 space-y-2">
+                    <div class="w-full pb-2 border-b border-amber-500/30">
+                        <span class="text-[10px] uppercase font-bold text-amber-400 block mb-0.5">Temps / Bar</span>
+                        <div id="timer-display" class="font-mono font-black text-4xl text-amber-400 tracking-tight drop-shadow-md">30:00</div>
+                    </div>
+                    <div class="w-full pt-1">
+                        <span class="text-[10px] uppercase font-bold text-amber-400 block mb-0.5">Chrono Total</span>
+                        <div id="timer-total-display" class="font-mono font-black text-xl text-amber-300 tracking-wider">01:30:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timer Action Controls (Pause/Reprendre et Réinitialiser) -->
+            <div class="grid grid-cols-2 gap-3">
+                <button id="btn-toggle-timer" onclick="toggleTimer()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-4 px-3 rounded-xl shadow-neon text-sm active:scale-95 transition flex items-center justify-center gap-2 border border-amber-400/50">
+                    <i class="fa-solid fa-play text-sm" id="timer-icon"></i> <span id="timer-btn-text">Lancer</span>
+                </button>
+                <button onclick="resetTimer()" class="bg-pub-card hover:bg-pub-border text-gray-300 font-bold py-4 px-3 rounded-xl border border-pub-border text-sm active:scale-95 transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-rotate-left text-sm"></i> Réinitialiser
+                </button>
+            </div>
+
+            <!-- Stats & Consumption Tracker -->
+            <div class="space-y-2">
+                <!-- Top Row: Bières & Volume (50/50) -->
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <!-- Drinks Drunk -->
+                    <div class="glass-panel p-3 rounded-xl border border-pub-border flex flex-col justify-between">
+                        <span id="label-drink-type" class="text-[10px] uppercase font-bold text-amber-400 block">Bières</span>
+                        <div class="my-1">
+                            <span id="counter-beers" class="text-2xl font-black text-amber-400">0</span>
+                            <div id="counter-glass-cl" class="text-[10px] text-gray-400">(25 cl)</div>
+                        </div>
+                        <div class="flex justify-center gap-1 mt-1">
+                            <button onclick="modifierBieres(-1)" class="bg-pub-border hover:bg-gray-700 text-white px-2.5 py-1 rounded-lg font-black text-xs active:scale-90">-</button>
+                            <button onclick="modifierBieres(1)" class="bg-amber-500 hover:bg-amber-600 text-slate-950 px-2.5 py-1 rounded-lg font-black text-xs active:scale-90">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Volume Drunk -->
+                    <div class="glass-panel p-3 rounded-xl border border-pub-border flex flex-col justify-between">
+                        <span class="text-[10px] uppercase font-bold text-emerald-400 block">Volume</span>
+                        <div class="my-1">
+                            <span id="counter-liters" class="text-xl font-black text-emerald-400">0.0 L</span>
+                            <div id="total-expected-volume" class="text-[9px] text-emerald-400/70 font-semibold mt-0.5">/ 5.25 L prévu</div>
+                        </div>
+                        <div class="text-[10px] text-gray-400 font-semibold border-t border-pub-border/40 pt-1">
+                            ~<span id="counter-calories">0</span> kcal
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Alcohol Level Estimation taking FULL WIDTH -->
+                <div id="card-alcohol-level" class="glass-panel p-3 rounded-xl border border-pub-border flex items-center justify-between transition-all duration-300">
+                    <div>
+                        <span id="label-alcohol-title" class="text-[10px] uppercase font-bold text-red-400 block transition-colors">Alcoolémie estimée</span>
+                        <div class="flex items-baseline gap-1 mt-0.5">
+                            <span id="counter-alcohol-g" class="text-2xl font-black text-white transition-colors">0.00</span>
+                            <span class="text-xs text-gray-400 font-semibold">g/L sang</span>
+                        </div>
+                    </div>
+                    <div id="alcohol-status-badge" class="text-xs font-extrabold px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors">
+                        Conduite OK
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 2: Itinéraire des Bars -->
+        <section id="tab-route" class="tab-content hidden space-y-3">
+            <div class="glass-panel p-3 rounded-xl border border-pub-border">
+                <h3 class="font-bold text-amber-400 text-sm mb-2 flex items-center justify-between">
+                    <span><i class="fa-solid fa-map-location-dot"></i> Parcours des bars</span>
+                    <button onclick="ajouterBarManuel()" class="text-xs bg-amber-500/20 text-amber-300 px-2 py-1 rounded border border-amber-500/30">+ Ajouter</button>
+                </h3>
+                <div id="bar-list-container" class="space-y-2">
+                    <!-- Dynamic bar list -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 3: Safety / Urgence -->
+        <section id="tab-safety" class="tab-content hidden space-y-3">
+            <div class="glass-panel p-4 rounded-xl border border-red-500/40 bg-red-950/20 space-y-3">
+                <h3 class="font-extrabold text-red-400 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Contact d'urgence & Secours
+                </h3>
+                <p class="text-xs text-gray-300">En cas de malaise ou d'urgence, prévenez immédiatement vos proches ou les services de secours.</p>
+                
+                <div class="space-y-2">
+                    <a href="tel:112" class="w-full bg-red-600 hover:bg-red-700 text-white font-black py-3 px-4 rounded-xl flex items-center justify-center gap-2 text-sm shadow-neon-red">
+                        <i class="fa-solid fa-phone"></i> Appeler le 112 (Urgences)
+                    </a>
+                    <a href="tel:15" class="w-full bg-pub-card hover:bg-pub-border text-red-300 font-bold py-2.5 px-4 rounded-xl border border-red-500/30 flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-user-doctor"></i> Appeler le SAMU (15)
+                    </a>
+                    <button onclick="appelerSAMU()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 text-xs">
+                        <i class="fa-solid fa-taxi"></i> Commander un Taxi / VTC
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tab 4: Réglages -->
+        <section id="tab-settings" class="tab-content hidden space-y-3">
+            <div class="glass-panel p-4 rounded-xl border border-pub-border space-y-3">
+                <h3 class="font-bold text-amber-400 text-sm"><i class="fa-solid fa-sliders"></i> Paramètres du Barathon</h3>
+                
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-gray-400 mb-1">Apparence / Thème</label>
+                        <button onclick="toggleTheme()" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2.5 text-white font-bold flex items-center justify-between hover:border-amber-500 transition">
+                            <span class="flex items-center gap-2">
+                                <i id="theme-toggle-icon-settings" class="fa-solid fa-moon text-amber-400"></i>
+                                <span id="theme-toggle-text">Mode Sombre (Actif)</span>
+                            </span>
+                            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded">Basculer</span>
+                        </button>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Nom du Barathon</label>
+                        <input type="text" id="setting-barathon-name" value="Barathon" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-gray-400 mb-1">Type de boisson</label>
+                            <select id="setting-drink-type" onchange="ajusterDegreParDefaut()" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                                <option value="beer" selected>Bière</option>
+                                <option value="wine">Vin</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-400 mb-1">Alcool (%)</label>
+                            <input type="number" id="setting-drink-abv" value="5.0" step="0.1" min="0" max="100" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Durée par bar (minutes)</label>
+                        <input type="number" id="setting-bar-duration" value="30" min="1" max="180" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Volume d'une bière par défaut (cl)</label>
+                        <select id="setting-glass-size" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                            <option value="12.5">Galopin (12,5 cl)</option>
+                            <option value="25" selected>Demi (25 cl)</option>
+                            <option value="33">Bouteille / Canette (33 cl)</option>
+                            <option value="50">Pinte (50 cl)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Poids de l'utilisateur (kg)</label>
+                        <input type="number" id="setting-user-weight" value="75" min="40" max="150" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-gray-400 mb-1">Sexe biologique</label>
+                        <select id="setting-user-gender" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                            <option value="homme">Homme</option>
+                            <option value="femme">Femme</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button onclick="enregistrerEtActualiserReglages()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-3 rounded-xl text-xs shadow-neon mt-2 transition">
+                    <i class="fa-solid fa-arrows-rotate"></i> Actualiser & Appliquer les paramètres
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modale Édition d'un Bar -->
+    <div id="modal-edit-bar" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="glass-panel p-4 rounded-xl border border-pub-border w-full max-w-xs space-y-3 bg-pub-card">
+            <h3 class="font-extrabold text-amber-400 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-pen-to-square"></i> Modifier le bar
+            </h3>
+            <input type="hidden" id="edit-bar-id">
+            <div class="space-y-2 text-xs">
+                <div>
+                    <label class="block text-gray-400 mb-1">Nom du bar</label>
+                    <input type="text" id="edit-bar-name" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-gray-400 mb-1">Adresse</label>
+                    <input type="text" id="edit-bar-address" class="w-full bg-pub-dark border border-pub-border rounded-lg p-2 text-white font-bold focus:border-amber-500 outline-none">
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="fermerModalBar()" class="bg-pub-dark hover:bg-pub-border text-gray-300 font-bold py-2 rounded-lg border border-pub-border text-xs">Annuler</button>
+                <button onclick="sauvegarderBar()" class="bg-amber-500 hover:bg-amber-600 text-slate-950 font-black py-2 rounded-lg text-xs shadow-neon">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-pub-card/95 backdrop-blur-md border-t border-pub-border grid grid-cols-4 py-2 px-1 z-50 text-center text-gray-400">
+        <button onclick="changerOnglet('dashboard')" id="nav-dashboard" class="nav-btn text-amber-400 flex flex-col items-center gap-1 text-[10px] font-bold">
+            <i class="fa-solid fa-stopwatch text-lg"></i> Chrono
+        </button>
+        <button onclick="changerOnglet('route')" id="nav-route" class="nav-btn flex flex-col items-center gap-1 text-[10px] font-bold hover:text-amber-400">
+            <i class="fa-solid fa-map text-lg"></i> Parcours
+        </button>
+        <button onclick="changerOnglet('safety')" id="nav-safety" class="nav-btn flex flex-col items-center gap-1 text-[10px] font-bold hover:text-red-400">
+            <i class="fa-solid fa-shield-halved text-lg"></i> Secours
+        </button>
+        <button onclick="changerOnglet('settings')" id="nav-settings" class="nav-btn flex flex-col items-center gap-1 text-[10px] font-bold hover:text-amber-400">
+            <i class="fa-solid fa-gear text-lg"></i> Réglages
+        </button>
+    </nav>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // App State
+        let state = {
+            theme: 'dark', // 'dark' ou 'light'
+            barathonName: "Barathon",
+            bars: [
+                { id: 1, name: "Le Social Bar", address: "", duration: 30 },
+                { id: 2, name: "Le Beehive", address: "", duration: 30 },
+                { id: 3, name: "Le Mustang", address: "", duration: 30 },
+                { id: 4, name: "Le Victoria", address: "", duration: 30 },
+                { id: 5, name: "Le Café des Arts", address: "", duration: 30 },
+                { id: 6, name: "Le Novelty", address: "", duration: 30 },
+                { id: 7, name: "Le Redbuffy", address: "", duration: 30 },
+                { id: 8, name: "Le Foch", address: "", duration: 30 },
+                { id: 9, name: "Le Comptoir de l'Arc", address: "", duration: 30 },
+                { id: 10, name: "Le Café Panis", address: "", duration: 30 },
+                { id: 11, name: "Le Kraken", address: "", duration: 30 },
+                { id: 12, name: "Le Café de la Mer", address: "", duration: 30 },
+                { id: 13, name: "Le Shakespeare", address: "", duration: 30 },
+                { id: 14, name: "La Fumerie", address: "", duration: 30 },
+                { id: 15, name: "Le Petit Nice", address: "", duration: 30 },
+                { id: 16, name: "Les Berthoms", address: "", duration: 30 },
+                { id: 17, name: "Al Andalus", address: "", duration: 30 },
+                { id: 18, name: "Bar 18", address: "", duration: 30 },
+                { id: 19, name: "Bar 19", address: "", duration: 30 },
+                { id: 20, name: "Bar 20", address: "", duration: 30 },
+                { id: 21, name: "Bar 21", address: "", duration: 30 }
+            ],
+            currentBarIndex: 0,
+            beersDrunk: 0,
+            timeRemainingInBar: 1800, // 30 mins en secondes
+            totalRemainingTime: 37800, // 21 bars x 30 mins
+            isTimerPaused: true,
+            hasStarted: false,
+            glassSizeCl: 25,
+            drinkType: 'beer', // 'beer', 'wine'
+            drinkAbv: 5.0,
+            defaultBarDurationMin: 30,
+            userWeightKg: 75,
+            userGender: 'homme',
+            timerInterval: null
+        };
+
+        // Variables pour le Glisser-Déposer (Drag & Drop)
+        let draggedItemIndex = null;
+
+        // Initialisation au chargement de la page
+        window.onload = function() {
+            remplirListeBars();
+            calculerChronoTotalInitial();
+            mettreAJourAffichage();
+            appliquerTheme();
+        };
+
+        // Navigation entre Onglets
+        function changerOnglet(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-btn').forEach(el => {
+                el.classList.remove('text-amber-400', 'text-red-400');
+                el.classList.add('text-gray-400');
+            });
+
+            const selectedTab = document.getElementById(`tab-${tabName}`);
+            if (selectedTab) selectedTab.classList.remove('hidden');
+
+            const selectedNavBtn = document.getElementById(`nav-${tabName}`);
+            if (selectedNavBtn) {
+                selectedNavBtn.classList.remove('text-gray-400');
+                selectedNavBtn.classList.add(tabName === 'safety' ? 'text-red-400' : 'text-amber-400');
+            }
+        }
+
+        // Gestion du Thème Clair / Sombre
+        function toggleTheme() {
+            state.theme = state.theme === 'dark' ? 'light' : 'dark';
+            appliquerTheme();
+        }
+
+        function appliquerTheme() {
+            const html = document.documentElement;
+            const iconSettings = document.getElementById('theme-toggle-icon-settings');
+            const textSettings = document.getElementById('theme-toggle-text');
+            const iconChrono = document.getElementById('theme-icon-chrono');
+
+            if (state.theme === 'dark') {
+                html.classList.add('dark');
+                if (iconSettings) iconSettings.className = "fa-solid fa-moon text-amber-400";
+                if (textSettings) textSettings.textContent = "Mode Sombre (Actif)";
+                if (iconChrono) iconChrono.className = "fa-solid fa-sun text-amber-400";
+            } else {
+                html.classList.remove('dark');
+                if (iconSettings) iconSettings.className = "fa-solid fa-sun text-amber-500";
+                if (textSettings) textSettings.textContent = "Mode Clair (Actif)";
+                if (iconChrono) iconChrono.className = "fa-solid fa-moon text-amber-600";
+            }
+        }
+
+        // Ajuste le degré d'alcool par défaut selon le type de boisson
+        function ajusterDegreParDefaut() {
+            const drinkType = document.getElementById('setting-drink-type').value;
+            const abvInput = document.getElementById('setting-drink-abv');
+            if (drinkType === 'beer') {
+                abvInput.value = "5.0";
+            } else if (drinkType === 'wine') {
+                abvInput.value = "12.0";
+            }
+        }
+
+        // Gestion du Chronomètre
+        function toggleTimer() {
+            if (state.isTimerPaused) {
+                lancerTimer();
+            } else {
+                pauserTimer();
+            }
+        }
+
+        function lancerTimer() {
+            state.isTimerPaused = false;
+            state.hasStarted = true;
+            document.getElementById('timer-btn-text').textContent = 'Pause';
+            document.getElementById('timer-icon').className = 'fa-solid fa-pause text-sm';
+            
+            if (state.timerInterval) clearInterval(state.timerInterval);
+            
+            state.timerInterval = setInterval(() => {
+                if (state.timeRemainingInBar > 0) {
+                    state.timeRemainingInBar--;
+                } else {
+                    passerAuBarSuivant();
+                }
+
+                if (state.totalRemainingTime > 0) {
+                    state.totalRemainingTime--;
+                }
+
+                mettreAJourChronoDisplay();
+            }, 1000);
+        }
+
+        function pauserTimer() {
+            state.isTimerPaused = true;
+            document.getElementById('timer-btn-text').textContent = state.hasStarted ? 'Reprendre' : 'Lancer';
+            document.getElementById('timer-icon').className = 'fa-solid fa-play text-sm';
+            if (state.timerInterval) clearInterval(state.timerInterval);
+        }
+
+        function resetTimer() {
+            pauserTimer();
+            state.hasStarted = false;
+            state.currentBarIndex = 0;
+            state.beersDrunk = 0;
+            state.timeRemainingInBar = (state.bars[0] ? state.bars[0].duration : state.defaultBarDurationMin) * 60;
+            calculerChronoTotalInitial();
+            mettreAJourAffichage();
+        }
+
+        function passerAuBarSuivant() {
+            // Incrémenter automatiquement le compteur de bières
+            state.beersDrunk++;
+
+            if (state.currentBarIndex < state.bars.length - 1) {
+                state.currentBarIndex++;
+                const nextBar = state.bars[state.currentBarIndex];
+                state.timeRemainingInBar = (nextBar ? nextBar.duration : state.defaultBarDurationMin) * 60;
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            } else {
+                pauserTimer();
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.6 } });
+            }
+            mettreAJourAffichage();
+        }
+
+        function calculerChronoTotalInitial() {
+            let sumSec = 0;
+            state.bars.forEach(b => sumSec += b.duration * 60);
+            state.totalRemainingTime = sumSec;
+        }
+
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = seconds % 60;
+            return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function formatTotalTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = seconds % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        function mettreAJourChronoDisplay() {
+            const timerDisplay = document.getElementById('timer-display');
+            const totalDisplay = document.getElementById('timer-total-display');
+            const chronoContainer = document.getElementById('chrono-container');
+
+            if (timerDisplay) timerDisplay.textContent = formatTime(state.timeRemainingInBar);
+            if (totalDisplay) totalDisplay.textContent = formatTotalTime(state.totalRemainingTime);
+
+            if (chronoContainer) {
+                // Alerte rouge clignotante sous les 1 minute (60s)
+                if (state.timeRemainingInBar <= 60 && !state.isTimerPaused) {
+                    chronoContainer.classList.add('timer-urgent-alert');
+                } else {
+                    chronoContainer.classList.remove('timer-urgent-alert');
+                }
+
+                // passage au rouge sous les 5 minutes (300 secondes)
+                if (state.timeRemainingInBar <= 300) {
+                    chronoContainer.classList.remove('border-amber-500', 'bg-amber-500/5');
+                    chronoContainer.classList.add('border-red-500/60', 'bg-red-500/10', 'timer-is-red');
+                    if (timerDisplay) {
+                        timerDisplay.classList.remove('text-amber-400');
+                        timerDisplay.classList.add('text-red-500');
+                    }
+                    if (totalDisplay) {
+                        totalDisplay.classList.remove('text-amber-300');
+                        totalDisplay.classList.add('text-red-400');
+                    }
+                } else {
+                    chronoContainer.classList.remove('border-red-500/60', 'bg-red-500/10', 'timer-is-red');
+                    chronoContainer.classList.add('border-amber-500', 'bg-amber-500/5');
+                    if (timerDisplay) {
+                        timerDisplay.classList.remove('text-red-500');
+                        timerDisplay.classList.add('text-amber-400');
+                    }
+                    if (totalDisplay) {
+                        totalDisplay.classList.remove('text-red-400');
+                        totalDisplay.classList.add('text-amber-300');
+                    }
+                }
+            }
+        }
+
+        // Mise à jour globale de l'interface
+        function mettreAJourAffichage() {
+            // Textes et badges
+            const currentBar = state.bars[state.currentBarIndex] || { name: "Fin", address: "-" };
+            const nextBar = state.bars[state.currentBarIndex + 1] || { name: "Aucun (Dernière étape)" };
+
+            document.getElementById('display-barathon-name').textContent = state.barathonName;
+            document.getElementById('current-bar-name').textContent = currentBar.name;
+            document.getElementById('current-bar-address').textContent = currentBar.address || "Adresse non renseignée";
+            document.getElementById('current-step-badge').textContent = `${state.currentBarIndex + 1} / ${state.bars.length}`;
+            document.getElementById('next-bar-name').textContent = nextBar.name;
+
+            // Type de boisson
+            const labelDrinkType = document.getElementById('label-drink-type');
+            if (labelDrinkType) {
+                labelDrinkType.textContent = state.drinkType === 'wine' ? 'Verres de Vin' : 'Bières';
+            }
+
+            // Calcul du volume et des calories
+            const litersDrunk = (state.beersDrunk * state.glassSizeCl) / 100;
+            const totalExpectedLiters = (state.bars.length * state.glassSizeCl) / 100;
+            const calories = Math.round(litersDrunk * (state.drinkType === 'wine' ? 800 : 430));
+
+            document.getElementById('counter-beers').textContent = state.beersDrunk;
+            document.getElementById('counter-glass-cl').textContent = `(${state.glassSizeCl} cl)`;
+            document.getElementById('counter-liters').textContent = `${litersDrunk.toFixed(1)} L`;
+            document.getElementById('total-expected-volume').textContent = `/ ${totalExpectedLiters.toFixed(2)} L prévu`;
+            document.getElementById('counter-calories').textContent = calories;
+
+            // Alcoolémie
+            calculerAlcoolemie(litersDrunk);
+
+            // Chronos
+            mettreAJourChronoDisplay();
+        }
+
+        // Estimation de l'alcoolémie (formule de Widmark)
+        function calculerAlcoolemie(liters) {
+            const gramsAlcohol = liters * 1000 * (state.drinkAbv / 100) * 0.8;
+            const r = state.userGender === 'femme' ? 0.55 : 0.68;
+            let bac = gramsAlcohol / (state.userWeightKg * r);
+
+            // Décroissance dans le temps si le barathon est commencé
+            const hoursElapsed = ((state.bars.length * (state.bars[0]?.duration || 30) * 60) - state.totalRemainingTime) / 3600;
+            if (hoursElapsed > 0) {
+                bac = Math.max(0, bac - (hoursElapsed * 0.15));
+            }
+
+            const alcoholElem = document.getElementById('counter-alcohol-g');
+            const badgeElem = document.getElementById('alcohol-status-badge');
+            const cardElem = document.getElementById('card-alcohol-level');
+            const titleElem = document.getElementById('label-alcohol-title');
+
+            if (alcoholElem) alcoholElem.textContent = bac.toFixed(2);
+
+            if (badgeElem && cardElem) {
+                if (bac < 0.5) {
+                    badgeElem.textContent = "Conduite OK";
+                    badgeElem.className = "text-xs font-extrabold px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-colors";
+                    cardElem.className = "glass-panel p-3 rounded-xl border border-emerald-500/40 flex items-center justify-between transition-all duration-300";
+                    if (alcoholElem) alcoholElem.className = "text-2xl font-black text-emerald-400 transition-colors";
+                    if (titleElem) titleElem.className = "text-[10px] uppercase font-bold text-emerald-400 block transition-colors";
+                } else if (bac < 0.8) {
+                    badgeElem.textContent = "Limite atteinte";
+                    badgeElem.className = "text-xs font-extrabold px-3 py-1.5 rounded-lg bg-orange-500/20 text-orange-300 border border-orange-500/30 transition-colors";
+                    cardElem.className = "glass-panel p-3 rounded-xl border border-orange-500/50 flex items-center justify-between transition-all duration-300";
+                    if (alcoholElem) alcoholElem.className = "text-2xl font-black text-orange-400 transition-colors";
+                    if (titleElem) titleElem.className = "text-[10px] uppercase font-bold text-orange-400 block transition-colors";
+                } else {
+                    badgeElem.textContent = "Dépassement sévère";
+                    badgeElem.className = "text-xs font-extrabold px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30 transition-colors";
+                    cardElem.className = "glass-panel p-3 rounded-xl border border-red-500/60 flex items-center justify-between transition-all duration-300";
+                    if (alcoholElem) alcoholElem.className = "text-2xl font-black text-red-400 transition-colors";
+                    if (titleElem) titleElem.className = "text-[10px] uppercase font-bold text-red-400 block transition-colors";
+                }
+            }
+        }
+
+        // Modifier manuellement le nombre de verres bu
+        function modifierBieres(delta) {
+            state.beersDrunk = Math.max(0, state.beersDrunk + delta);
+            mettreAJourAffichage();
+        }
+
+        // Remplir la liste des bars dans l'onglet Parcours
+        function remplirListeBars() {
+            const container = document.getElementById('bar-list-container');
+            if (!container) return;
+
+            container.innerHTML = '';
+            state.bars.forEach((bar, index) => {
+                const isCurrent = index === state.currentBarIndex;
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-xl border flex items-center justify-between transition ${
+                    isCurrent ? 'bg-amber-500/10 border-amber-500' : 'bg-pub-dark border-pub-border'
+                }`;
+                div.draggable = true;
+                div.ondragstart = (e) => dragStart(e, index);
+                div.ondragover = (e) => dragOver(e);
+                div.ondrop = (e) => drop(e, index);
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-grip-lines text-gray-500 cursor-grab"></i>
+                        <span class="font-black text-xs ${isCurrent ? 'text-amber-400' : 'text-gray-400'}">#${index + 1}</span>
+                        <div>
+                            <div class="font-extrabold text-xs text-white">${bar.name}</div>
+                            <div class="text-[10px] text-gray-400">${bar.address || 'Aucune adresse'}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="ouvrirModalBar(${bar.id})" class="text-xs text-gray-400 hover:text-amber-400 p-1"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="supprimerBar(${bar.id})" class="text-xs text-gray-400 hover:text-red-400 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // Glisser-Déposer (Drag and Drop)
+        function dragStart(e, index) {
+            draggedItemIndex = index;
+        }
+
+        function dragOver(e) {
+            e.preventDefault();
+        }
+
+        function drop(e, targetIndex) {
+            e.preventDefault();
+            if (draggedItemIndex === null || draggedItemIndex === targetIndex) return;
+            const movedBar = state.bars.splice(draggedItemIndex, 1)[0];
+            state.bars.splice(targetIndex, 0, movedBar);
+            draggedItemIndex = null;
+            remplirListeBars();
+            mettreAJourAffichage();
+        }
+
+        // Modale d'édition de bar
+        function ouvrirModalBar(id) {
+            const bar = state.bars.find(b => b.id === id);
+            if (!bar) return;
+            document.getElementById('edit-bar-id').value = bar.id;
+            document.getElementById('edit-bar-name').value = bar.name;
+            document.getElementById('edit-bar-address').value = bar.address || '';
+            document.getElementById('modal-edit-bar').classList.remove('hidden');
+        }
+
+        function fermerModalBar() {
+            document.getElementById('modal-edit-bar').classList.add('hidden');
+        }
+
+        function sauvegarderBar() {
+            const id = parseInt(document.getElementById('edit-bar-id').value);
+            const bar = state.bars.find(b => b.id === id);
+            if (bar) {
+                bar.name = document.getElementById('edit-bar-name').value || bar.name;
+                bar.address = document.getElementById('edit-bar-address').value;
+                remplirListeBars();
+                mettreAJourAffichage();
+            }
+            fermerModalBar();
+        }
+
+        function ajouterBarManuel() {
+            const newId = state.bars.length > 0 ? Math.max(...state.bars.map(b => b.id)) + 1 : 1;
+            state.bars.push({
+                id: newId,
+                name: `Bar ${newId}`,
+                address: "",
+                duration: state.defaultBarDurationMin
+            });
+            calculerChronoTotalInitial();
+            remplirListeBars();
+            mettreAJourAffichage();
+        }
+
+        function supprimerBar(id) {
+            if (state.bars.length <= 1) return;
+            state.bars = state.bars.filter(b => b.id !== id);
+            if (state.currentBarIndex >= state.bars.length) {
+                state.currentBarIndex = state.bars.length - 1;
+            }
+            calculerChronoTotalInitial();
+            remplirListeBars();
+            mettreAJourAffichage();
+        }
+
+        // Appliquer les nouveaux réglages
+        function enregistrerEtActualiserReglages() {
+            state.barathonName = document.getElementById('setting-barathon-name').value || "Barathon";
+            state.drinkType = document.getElementById('setting-drink-type').value;
+            state.drinkAbv = parseFloat(document.getElementById('setting-drink-abv').value) || 5.0;
+            state.glassSizeCl = parseFloat(document.getElementById('setting-glass-size').value) || 25;
+            state.userWeightKg = parseFloat(document.getElementById('setting-user-weight').value) || 75;
+            state.userGender = document.getElementById('setting-user-gender').value;
+
+            const duration = parseInt(document.getElementById('setting-bar-duration').value) || 30;
+            state.defaultBarDurationMin = duration;
+            state.bars.forEach(b => b.duration = duration);
+
+            if (!state.hasStarted) {
+                state.timeRemainingInBar = duration * 60;
+                calculerChronoTotalInitial();
+            }
+
+            remplirListeBars();
+            mettreAJourAffichage();
+            changerOnglet('dashboard');
+        }
+
+        function appelerSAMU() {
+            window.location.href = "tel:15";
+        }
+    </script>
+</body>
+</html>
